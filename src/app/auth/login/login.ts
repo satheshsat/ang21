@@ -1,5 +1,6 @@
-import { Component } from '@angular/core';
+import { Component, signal } from '@angular/core';
 import { Auth } from '../../service/auth';
+import { form, FormField, required, email, submit } from '@angular/forms/signals';
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common';
@@ -8,12 +9,22 @@ import { Cookie } from '../../service/cookie';
 
 @Component({
   selector: 'app-login',
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule],
+  imports: [FormField, CommonModule, FormsModule, ReactiveFormsModule, RouterModule],
   templateUrl: './login.html',
   styleUrl: './login.scss',
 })
 export class Login {
-  form!: FormGroup;
+
+  protected readonly loginModel = signal({
+    email: '',
+    password: ''
+  });
+
+  protected readonly loginForm = form(this.loginModel, (path) => {
+    required(path.email, { message: 'Email is required' });
+    email(path.email, { message: 'Invalid email format' });
+    required(path.password, { message: 'Password is required' });
+  });
     loading = false;
     submitted = false;
 
@@ -28,26 +39,14 @@ export class Login {
     ) { }
 
     ngOnInit() {
-        this.form = this.formBuilder.group({
-            email: ['', [Validators.required, Validators.pattern("^[a-zA-Z0-9][a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]*?[a-zA-Z0-9._-]?@[a-zA-Z0-9][a-zA-Z0-9._-]*?[a-zA-Z0-9]?\\.[a-zA-Z]{2,63}$")]],
-            password: ['', Validators.required]
-        });
     }
 
-    // convenience getter for easy access to form fields
-    get f() { return this.form.controls; }
-
-    onSubmit() {
-        this.submitted = true;
-        this.message = null;
-
-        // stop here if form is invalid
-        if (this.form.invalid) {
-            return;
-        }
-
-        this.loading = true;
-        this.authService.login(this.f['email'].value, this.f['password'].value).subscribe((res: any)=>{
+    onSubmit(event: any) {
+      event.preventDefault();
+      this.submitted = true;
+      this.loading = true;
+      this.message = null;
+        this.authService.login(this.loginForm.email().value(), this.loginForm.password().value()).subscribe((res: any)=>{
           console.log(res);
           this.storageService.set('userData', JSON.stringify(res.data))
           this.cookieService.set('accessToken', res.accessToken)
