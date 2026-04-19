@@ -1,17 +1,31 @@
-import { Component } from '@angular/core';
+import { Component, signal } from '@angular/core';
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { Auth } from '../../service/auth';
+import { form, FormField, required, email, submit } from '@angular/forms/signals';
 import { CommonModule } from '@angular/common';
+import { threadId } from 'worker_threads';
 
 @Component({
   selector: 'app-register',
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule],
+  imports: [FormField, CommonModule, FormsModule, ReactiveFormsModule, RouterModule],
   templateUrl: './register.html',
   styleUrl: './register.scss',
 })
 export class Register {
-  form!: FormGroup;
+  protected readonly registerModel = signal({
+    name: '',
+    email: '',
+    password: ''
+  });
+
+  protected readonly registerForm = form(this.registerModel, (path) => {
+    required(path.name, { message: 'Email is required' });
+    required(path.email, { message: 'Email is required' });
+    email(path.email, { message: 'Invalid email format' });
+    required(path.password, { message: 'Password is required' });
+  });
+
   loading = false;
   submitted = false;
   message = null;
@@ -23,31 +37,22 @@ export class Register {
   ) { }
 
   ngOnInit() {
-      this.form = this.formBuilder.group({
-          name: ['', Validators.required],
-          email: ['', [Validators.required, Validators.pattern("^[a-zA-Z0-9][a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]*?[a-zA-Z0-9._-]?@[a-zA-Z0-9][a-zA-Z0-9._-]*?[a-zA-Z0-9]?\\.[a-zA-Z]{2,63}$")]],
-          password: ['', [Validators.required, Validators.minLength(6)]]
-      });
   }
 
-  // convenience getter for easy access to form fields
-  get f() { return this.form.controls; }
+  onSubmit(event: any) {
+      event.preventDefault();
+      this.submitted = true;
+      this.message = null;
 
-  onSubmit() {
-    this.submitted = true;
-    this.message = null;
-
-    // stop here if form is invalid
-    if (this.form.invalid) {
-        return;
+      this.loading = true;
+      console.log(this.registerModel)
+      submit(this.registerForm, async () => {
+      this.authService.register(this.registerModel()).subscribe((res)=>{
+        this.router.navigateByUrl('/auth/login');
+      },err => {
+        this.message = err.error?.message ? err.error?.message : 'Something went wrong please try again';
+        this.loading = false;
+      })
+    });
     }
-
-    this.loading = true;
-    this.authService.register(this.form.value).subscribe((res)=>{
-      this.router.navigateByUrl('/auth/login');
-    },err => {
-      this.message = err.error?.message ? err.error?.message : 'Something went wrong please try again';
-      this.loading = false;
-    })
-  }
 }
