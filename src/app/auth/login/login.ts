@@ -44,8 +44,9 @@ export class Login {
     onSubmit(event: any) {
       event.preventDefault();
       this.submitted = true;
-      this.loading = true;
       this.message = null;
+      submit(this.loginForm, async () => {
+        this.loading = true;
         this.authService.login(this.loginForm.email().value(), this.loginForm.password().value()).subscribe((res: any)=>{
           console.log(res);
           this.storageService.set('userData', JSON.stringify(res.data))
@@ -57,5 +58,6 @@ export class Login {
           this.loading = false;
           console.log(err);
         })
+      });
     }
 }

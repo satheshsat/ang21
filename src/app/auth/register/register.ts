@@ -44,9 +44,9 @@ export class Register {
       this.submitted = true;
       this.message = null;
 
-      this.loading = true;
       console.log(this.registerModel)
       submit(this.registerForm, async () => {
+        this.loading = true;
       this.authService.register(this.registerModel()).subscribe((res)=>{
         this.router.navigateByUrl('/auth/login');
       },err => {
